@@ -25,6 +25,7 @@ import theano.tensor as T
 from utils.utils import string_2_bool, parse_ignore_label, parse_map_label
 from pfile_io import PfileDataRead, PfileDataReadStream
 from pickle_io import PickleDataRead
+from ark_io import ArkDataRead
 from kaldi_io import KaldiDataRead
 
 def read_data_args(data_spec):
@@ -46,6 +47,8 @@ def read_data_args(data_spec):
         dataset_args['type'] = 'pfile'
     elif '.scp' in data_spec:
         dataset_args['type'] = 'kaldi'
+    elif '.ark' in data_spec:
+	dataset_args['type'] = 'ark'
     else:
         dataset_args['type'] = ''
 
@@ -88,6 +91,9 @@ def read_dataset(file_path_list, read_opts):
             data_reader = PfileDataRead(file_path_list, read_opts)
     elif read_opts['type'] == 'kaldi':
         data_reader = KaldiDataRead(file_path_list, read_opts)
+    elif read_opts['type'] == 'ark':
+        data_reader = ArkDataRead(file_path_list, read_opts)
+
 
     data_reader.initialize_read(first_time_reading = True)
 

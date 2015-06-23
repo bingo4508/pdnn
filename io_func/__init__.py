@@ -54,7 +54,8 @@ def preprocess_feature_and_label(feature, label, opts):
         matrix and label vector.
     '''
 
-    feature = make_context(feature, opts['lcxt'], opts['rcxt'])
+    if opts['lcxt'] != 0 or opts['rcxt'] != 0:
+	    feature = make_context(feature, opts['lcxt'], opts['rcxt'])
 
     if label is not None:
         if opts.has_key('ignore-label'):
