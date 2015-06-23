@@ -25,6 +25,53 @@ from utils.utils import string_2_bool
 from model_io import log
 from io_func import smart_open, preprocess_feature_and_label, shuffle_feature_and_label
 
+
+def load(f):
+    # File format:
+    #
+    # Big file -
+    # num_row num_col
+    # sample_1 0.1 0.2 0.4 ... 20
+    # sample_2 0.1 0.2 0.3 ... 13
+    #
+    # Small file -
+    # sample_1 0.1 0.2 0.4 ... 20
+    # sample_2 0.1 0.2 0.3 ... 13
+
+    l = f.readline()
+    l = l.strip().split(' ')
+    is_big = True
+    label_arr = []
+
+    if l[0].isdigit():
+	    # big file
+	    c = 0
+	    num_row, num_col = int(l[0]), int(l[1])
+	    array = numpy.zeros((num_row, num_col), dtype=numpy.float32)
+    else:
+	    # small file
+	    is_big = False
+	    array = []
+	    label_arr.append(int(l[-1]))
+	    array.append(numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32))
+	    
+    while True:
+	    l = f.readline()
+	    if not l:
+		    break
+	    l=l.split(' ')
+	    label_arr.append(int(l[-1]))
+	    if is_big:
+		    array[c] = numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32)
+		    c += 1
+	    else:
+		    array.append(numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32))
+
+    label_arr = numpy.asarray(label_arr, dtype=numpy.float32)
+    array = array if is_big else numpy.asarray(array, dtype=numpy.float32)
+
+    return [array, label_arr]
+
 class ArkDataRead(object):
 
     def __init__(self, pfile_path_list, read_opts):
@@ -40,59 +87,12 @@ class ArkDataRead(object):
         # other variables to be consistent with PfileDataReadStream
         self.cur_frame_num = 0
         self.end_reading = False
-    
-    def load(self, f):
-	    # File format:
-	    #
-	    # Big file -
-	    # num_row num_col
-	    # sample_1 0.1 0.2 0.4 ... 20
-	    # sample_2 0.1 0.2 0.3 ... 13
-	    #
-	    # Small file -
- 	    # sample_1 0.1 0.2 0.4 ... 20
-	    # sample_2 0.1 0.2 0.3 ... 13
-
-	    l = f.readline()
-	    l = l.strip().split(' ')
-	    is_big = True
-	    label_arr = []
-
-	    if l[0].isdigit():
-		    # big file
-		    c = 0
-		    num_row, num_col = int(l[0]), int(l[1])
-		    array = numpy.zeros((num_row, num_col), dtype=numpy.float32)
-	    else:
-		    # small file
-		    is_big = False
-		    array = []
-		    label_arr.append(int(l[-1]))
-		    array.append(numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32))
-		    
-	    while True:
-		    l = f.readline()
-		    if not l:
-			    break
-		    l=l.split(' ')
-		    label_arr.append(int(l[-1]))
-		    if is_big:
-			    array[c] = numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32)
-			    c += 1
-		    else:
-			    array.append(numpy.array([float(e) for e in l[1:-1]], dtype=numpy.float32))
-
-            label_arr = numpy.asarray(label_arr, dtype=numpy.float32)
-	    array = array if is_big else numpy.asarray(array, dtype=numpy.float32)
-
-            return [array, label_arr]
-
 
     def load_next_partition(self, shared_xy):
         pfile_path = self.pfile_path_list[self.cur_pfile_index]
         if self.feat_mat is None or len(self.pfile_path_list) > 1:
             fopen = smart_open(pfile_path, 'rb')
-            self.feat_mat, self.label_vec = self.load(fopen)
+            self.feat_mat, self.label_vec = load(fopen)
             fopen.close()
             shared_x, shared_y = shared_xy
 
